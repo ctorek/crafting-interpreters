@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class Lox {
+    // Tracks whether an error was found while code is run
     private static boolean hadError = false;
 
     public static void main(String[] args) throws IOException {
@@ -45,14 +46,35 @@ public class Lox {
     private static void run(String source) {
         Scanner scanner = new Scanner(source);
         List<Token> tokens = scanner.scanTokens();
+        Parser parser = new Parser(tokens);
+        Expression expression = parser.parse();
 
-        for(Token token: tokens) {
-            System.out.println(token);
-        }
+        // Stop if there is an error
+        if (hadError) return;
+
+        System.out.println(new AstViewer().print(expression));
     }
 
+    /**
+     * Report an error at a specific line and location.
+     * @param line the line number where the error is located
+     * @param message the error message
+     */
     static void error(int line, String message) {
         report(line, "", message);
+    }
+
+    /**
+     * Report an error at a specific token rather than a line.
+     * @param token the token where the error is located
+     * @param message the error message
+     */
+    static void error(Token token, String message) {
+        if (token.type == Token.TokenType.EOF) {
+            report(token.line, "at end", message);
+        } else {
+            report(token.line, "at '" + token.lexeme + "'", message);
+        }
     }
 
     private static void report(int line, String where, String message) {
