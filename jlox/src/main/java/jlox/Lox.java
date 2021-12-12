@@ -9,8 +9,14 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class Lox {
-    // Tracks whether an error was found while code is run
+    // Tracks whether an error was found when code is scanned and parsed
     private static boolean hadError = false;
+
+    // Tracks whether an error was found during runtime
+    private static boolean hadRuntimeError = false;
+
+    // Static so that successive calls to run from interactive make calls to the same interpreter
+    private static final Interpreter interpreter = new Interpreter();
 
     public static void main(String[] args) throws IOException {
         if (args.length > 1) {
@@ -28,6 +34,7 @@ public class Lox {
         run(new String(bytes, Charset.defaultCharset()));
 
         if (hadError) System.exit(65);
+        if (hadRuntimeError) System.exit(70);
     }
 
     private static void runPrompt() throws IOException {
@@ -49,10 +56,19 @@ public class Lox {
         Parser parser = new Parser(tokens);
         Expression expression = parser.parse();
 
-        // Stop if there is an error
+        // Stop if there is a syntax error
         if (hadError) return;
 
-        System.out.println(new AstViewer().print(expression));
+        interpreter.interpret(expression);
+    }
+
+    /**
+     * Report an error that happens during runtime.
+     * @param error the {@link RuntimeError} being reported
+     */
+    static void runtimeError(RuntimeError error) {
+        System.err.println(error.getMessage() + "\n[line " + error.token.line + "]");
+        hadRuntimeError = true;
     }
 
     /**
