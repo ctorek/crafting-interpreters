@@ -67,7 +67,7 @@ public class Lox {
      * @param error the {@link RuntimeError} being reported
      */
     static void runtimeError(RuntimeError error) {
-        System.err.println(error.getMessage() + "\n[line " + error.token.line + "]");
+        System.err.println("[line " + error.token.line + "] " + error.getMessage());
         hadRuntimeError = true;
     }
 

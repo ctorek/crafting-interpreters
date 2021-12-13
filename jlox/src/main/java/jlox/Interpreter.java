@@ -55,6 +55,10 @@ public class Interpreter implements Expression.Visitor<Object> {
                 return (double) left * (double) right;
             case SLASH:
                 checkNumberOperands(expression.operator, left, right);
+
+                // Check for division by 0
+                if ((double) right == 0) throw new RuntimeError(expression.operator, "Cannot divide by 0");
+
                 return (double) left / (double) right;
 
             // Plus can represent string concatenation or addition
@@ -65,8 +69,9 @@ public class Interpreter implements Expression.Visitor<Object> {
                 }
 
                 // String concatenation
-                if (left instanceof String && right instanceof String) {
-                    return (String) left + (String) right;
+                if (left instanceof String || right instanceof String) {
+                    // Allows concatenation with objects other than strings when either one is string
+                    return stringify(left) + stringify(right);
                 }
 
                 // If both operands do not match as numbers or strings, throw an error
