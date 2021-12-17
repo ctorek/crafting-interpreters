@@ -22,14 +22,56 @@ public class Parser {
         List<Statement> statements = new ArrayList<>();
 
         while (!isAtEnd()) {
-            statements.add(statement());
+            statements.add(declaration());
         }
 
         return statements;
     }
 
+    private List<Statement> block() {
+        List<Statement> statements = new ArrayList<>();
+
+        // Advance while next token is not a closing brace or end of file
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            statements.add(declaration());
+        }
+
+        // Right brace is required to end block statement
+        consume(RIGHT_BRACE, "Expect '}' after block.");
+        return statements;
+    }
+
+    private Statement declaration() {
+        try {
+            if(match(VAR)) return varDeclaration();
+
+            return statement();
+        } catch (ParseError err) {
+            synchronize();
+            return null;
+        }
+    }
+
+    private Statement varDeclaration() {
+        // Name must be present in a variable declaration
+        Token name = consume(IDENTIFIER, "Expect variable name.");
+
+        // Initialize the variable if a value is provided
+        Expression init = null;
+        if (match(EQUAL)) {
+            init = expression();
+        }
+
+        // Semicolon required after variable declaration
+        consume(SEMICOLON, "Expect ';' after variable declaration.");
+
+        // Create a new variable declaration
+        return new Statement.Var(name, init);
+    }
+
     private Statement statement() {
         if (match(PRINT)) return printStatement();
+        if (match(LEFT_BRACE)) return new Statement.Block(block());
 
         return expressionStatement();
     }
@@ -37,19 +79,37 @@ public class Parser {
     private Statement printStatement() {
         Expression expression = expression();
         // Semicolon is required or error will be thrown
-        consume(SEMICOLON, "Expect ';' after expression");
+        consume(SEMICOLON, "Expect ';' after expression.");
         return new Statement.Print(expression);
     }
 
     private Statement expressionStatement() {
         Expression expression = expression();
         // Semicolon is required or error will be thrown
-        consume(SEMICOLON, "Expect ';' after expression");
+        consume(SEMICOLON, "Expect ';' after expression.");
         return new Statement.Expr(expression);
     }
 
     private Expression expression() {
-        return equality();
+        return assignment();
+    }
+
+    private Expression assignment() {
+        Expression expression = equality();
+
+        if (match(EQUAL)) {
+            Token equals = previous();
+            Expression value = assignment();
+
+            if (expression instanceof Expression.Variable) {
+                Token name = ((Expression.Variable) expression).name;
+                return new Expression.Assign(name, value);
+            }
+
+            error(equals, "Invalid assignment target.");
+        }
+
+        return expression;
     }
 
     private Expression equality() {
@@ -135,6 +195,11 @@ public class Parser {
             return new Expression.Literal(previous().literal);
         }
 
+        // Match identifiers to values of variables
+        if (match(IDENTIFIER)) {
+            return new Expression.Variable(previous());
+        }
+
         // Match a left parenthesis with a right parenthesis to form a grouping expression
         if (match(LEFT_PAREN)) {
             Expression expression = expression();
@@ -143,7 +208,7 @@ public class Parser {
         }
 
         // Throw an error if an expression is not found
-        throw error(peek(), "Expect expression");
+        throw error(peek(), "Expect expression.");
     }
 
     /**

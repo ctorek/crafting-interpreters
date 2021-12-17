@@ -19,18 +19,22 @@ public class GenerateAst {
 
         String outputDir = args[0];
         writeAst(outputDir, "Expression", Arrays.asList(
-                // Types of expressions and how they are represented
+                // Types of expressions and their fields
+                "Assign:Token name,Expression value",
                 "Binary:Expression left,Token operator,Expression right",
                 "Grouping:Expression expression",
                 "Literal:Object value",
-                "Unary:Token operator,Expression expression"
+                "Unary:Token operator,Expression expression",
+                "Variable:Token name"
         ));
         System.out.println("Written to " + outputDir + "/Expression.java");
 
         writeAst(outputDir, "Statement", Arrays.asList(
                 // Types of statements and their fields
+                "Block:List<Statement> statements",
                 "Expr:Expression expression",
-                "Print:Expression expression"
+                "Print:Expression expression",
+                "Var:Token name,Expression init"
         ));
     }
 

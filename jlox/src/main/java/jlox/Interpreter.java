@@ -3,6 +3,8 @@ package jlox;
 import java.util.List;
 
 public class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void> {
+    // Defines and retrieves variables
+    private Environment environment = new Environment();
 
     void interpret(List<Statement> statements) {
         try {
@@ -12,6 +14,26 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
+    }
+
+    @Override
+    public Void visitBlockStatement(Statement.Block statement) {
+        executeBlock(statement.statements, new Environment(environment));
+        return null;
+    }
+
+    @Override
+    public Void visitVarStatement(Statement.Var statement) {
+        // Check for value of variable
+        Object value = null;
+        if (statement.init != null) {
+            // Evaluate the initializer if present
+            value = evaluate(statement.init);
+        }
+
+        // Define variable
+        environment.define(statement.name.lexeme, value);
+        return null;
     }
 
     @Override
@@ -29,6 +51,19 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
 
         // Null return is necessary because capital-V void
         return null;
+    }
+
+    @Override
+    public Object visitAssignExpression(Expression.Assign expression) {
+        Object value = evaluate(expression.value);
+        environment.assign(expression.name, value);
+
+        return value;
+    }
+
+    @Override
+    public Object visitVariableExpression(Expression.Variable expression) {
+        return environment.get(expression.name);
     }
 
     @Override
@@ -208,6 +243,20 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
      */
     private void execute(Statement statement) {
         statement.accept(this);
+    }
+
+    private void executeBlock(List<Statement> statements, Environment environment) {
+        Environment previous = this.environment;
+
+        try {
+            this.environment = environment;
+
+            for (Statement statement: statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = previous;
+        }
     }
 
 }

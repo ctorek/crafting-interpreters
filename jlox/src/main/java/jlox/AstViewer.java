@@ -14,6 +14,16 @@ public class AstViewer implements Expression.Visitor<String> {
     }
 
     @Override
+    public String visitAssignExpression(Expression.Assign expression) {
+        return parenthesize("set", expression, expression.value);
+    }
+
+    @Override
+    public String visitVariableExpression(Expression.Variable expression) {
+        return expression.name.lexeme;
+    }
+
+    @Override
     public String visitBinaryExpression(Expression.Binary expression) {
         // Binary expressions are represented by a left expression, an operator, and a right expression
         return parenthesize(expression.operator.lexeme, expression.left, expression.right);
