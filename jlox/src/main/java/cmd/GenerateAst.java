@@ -25,8 +25,13 @@ public class GenerateAst {
                 "Literal:Object value",
                 "Unary:Token operator,Expression expression"
         ));
-
         System.out.println("Written to " + outputDir + "/Expression.java");
+
+        writeAst(outputDir, "Statement", Arrays.asList(
+                // Types of statements and their fields
+                "Expr:Expression expression",
+                "Print:Expression expression"
+        ));
     }
 
     /**

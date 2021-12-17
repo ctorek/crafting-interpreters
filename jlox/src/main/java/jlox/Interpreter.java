@@ -1,13 +1,34 @@
 package jlox;
 
-public class Interpreter implements Expression.Visitor<Object> {
-    void interpret(Expression expression) {
+import java.util.List;
+
+public class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void> {
+
+    void interpret(List<Statement> statements) {
         try {
-            Object value = evaluate(expression);
-            System.out.println(stringify(value));
+            for (Statement statement: statements) {
+                execute(statement);
+            }
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
+    }
+
+    @Override
+    public Void visitExprStatement(Statement.Expr statement) {
+        evaluate(statement.expression);
+
+        // Null return is necessary because capital-V void
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStatement(Statement.Print statement) {
+        Object value = evaluate(statement.expression);
+        System.out.println(stringify(value));
+
+        // Null return is necessary because capital-V void
+        return null;
     }
 
     @Override
@@ -179,6 +200,14 @@ public class Interpreter implements Expression.Visitor<Object> {
      */
     private Object evaluate(Expression expression) {
         return expression.accept(this);
+    }
+
+    /**
+     * Execute a Lox statement.
+     * @param statement the statement to execute
+     */
+    private void execute(Statement statement) {
+        statement.accept(this);
     }
 
 }
