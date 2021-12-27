@@ -24,6 +24,7 @@ public class GenerateAst {
                 "Binary:Expression left,Token operator,Expression right",
                 "Grouping:Expression expression",
                 "Literal:Object value",
+                "Logical:Expression left,Token operator,Expression right",
                 "Unary:Token operator,Expression expression",
                 "Variable:Token name"
         ));
@@ -31,10 +32,12 @@ public class GenerateAst {
 
         writeAst(outputDir, "Statement", Arrays.asList(
                 // Types of statements and their fields
+                "If:Expression condition,Statement thenStmt,Statement elseStmt",
                 "Block:List<Statement> statements",
                 "Expr:Expression expression",
                 "Print:Expression expression",
-                "Var:Token name,Expression init"
+                "Var:Token name,Expression init",
+                "While:Expression condition,Statement body"
         ));
     }
 

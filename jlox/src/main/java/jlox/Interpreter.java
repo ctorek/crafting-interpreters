@@ -17,6 +17,17 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
     }
 
     @Override
+    public Void visitIfStatement(Statement.If statement) {
+        if (isTruthy(evaluate(statement.condition))) {
+            execute(statement.thenStmt);
+        } else if (statement.elseStmt != null) {
+            execute(statement.elseStmt);
+        }
+
+        return null;
+    }
+
+    @Override
     public Void visitBlockStatement(Statement.Block statement) {
         executeBlock(statement.statements, new Environment(environment));
         return null;
@@ -33,6 +44,15 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
 
         // Define variable
         environment.define(statement.name.lexeme, value);
+        return null;
+    }
+
+    @Override
+    public Void visitWhileStatement(Statement.While statement) {
+        while (isTruthy(evaluate(statement.condition))) {
+            execute(statement.body);
+        }
+
         return null;
     }
 
@@ -69,6 +89,19 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
     @Override
     public Object visitLiteralExpression(Expression.Literal expression) {
         return expression.value;
+    }
+
+    @Override
+    public Object visitLogicalExpression(Expression.Logical expression) {
+        Object left = evaluate(expression.left);
+
+        if (expression.operator.type == Token.TokenType.OR) {
+            if (isTruthy(left)) return left;
+        } else {
+            if (!isTruthy(left)) return left;
+        }
+
+        return evaluate(expression.right);
     }
 
     @Override

@@ -14,6 +14,11 @@ public class AstViewer implements Expression.Visitor<String> {
     }
 
     @Override
+    public String visitLogicalExpression(Expression.Logical expression) {
+        return parenthesize(expression.operator.lexeme, expression.left, expression.right);
+    }
+
+    @Override
     public String visitAssignExpression(Expression.Assign expression) {
         return parenthesize("set", expression, expression.value);
     }

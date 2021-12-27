@@ -1,6 +1,7 @@
 package jlox;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static jlox.Token.TokenType.*;
@@ -69,11 +70,90 @@ public class Parser {
         return new Statement.Var(name, init);
     }
 
+    private Statement whileStatement() {
+        // Condition should be contained in parentheses
+        consume(LEFT_PAREN, "Expect '(' before condition.");
+        Expression condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after condition.");
+
+        Statement body = statement();
+
+        return new Statement.While(condition, body);
+    }
+
     private Statement statement() {
+        if (match(FOR)) return forStatement();
+        if (match(IF)) return ifStatement();
         if (match(PRINT)) return printStatement();
+        if (match(WHILE)) return whileStatement();
         if (match(LEFT_BRACE)) return new Statement.Block(block());
 
         return expressionStatement();
+    }
+
+    private Statement forStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'for'.");
+
+        // Initializer is first part of for loop header
+        Statement initializer;
+        if (match(SEMICOLON)) {
+            // Initializer is not required to be present
+            initializer = null;
+        } else if (match(VAR)) {
+            initializer = varDeclaration();
+        } else {
+            initializer = expressionStatement();
+        }
+
+        // Expression is second part of for loop header
+        Expression condition = null;
+        if (!check(SEMICOLON)) {
+            // Condition is also not required
+            condition = expression();
+        }
+        consume(SEMICOLON, "Expect ';' after loop condition.");
+
+        // Increment is third part of for loop header
+        Expression increment = null;
+        if (!check(RIGHT_PAREN)) {
+            increment = expression();
+        }
+        consume(RIGHT_PAREN, "Expect ')' after for loop header.");
+
+        Statement body = statement();
+
+        // Include increment in body if present
+        if (increment != null) {
+            body = new Statement.Block(
+                    Arrays.asList(body, new Statement.Expr(increment))
+            );
+        }
+
+        // Condition should always be true if not present
+        if (condition == null) condition = new Expression.Literal(true);
+        body = new Statement.While(condition, body);
+
+        // If an initializer is present, run once before looping
+        if (initializer != null) {
+            body = new Statement.Block(Arrays.asList(initializer, body));
+        }
+
+        return body;
+    }
+
+    private Statement ifStatement() {
+        // Condition should be contained in parentheses
+        consume(LEFT_PAREN, "Expect '(' before condition.");
+        Expression condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after condition.");
+
+        Statement thenStmt = statement();
+
+        // Else is optional
+        Statement elseStmt = null;
+        if (match(ELSE)) elseStmt = statement();
+
+        return statement();
     }
 
     private Statement printStatement() {
@@ -95,7 +175,7 @@ public class Parser {
     }
 
     private Expression assignment() {
-        Expression expression = equality();
+        Expression expression = or();
 
         if (match(EQUAL)) {
             Token equals = previous();
@@ -107,6 +187,30 @@ public class Parser {
             }
 
             error(equals, "Invalid assignment target.");
+        }
+
+        return expression;
+    }
+
+    private Expression or() {
+        Expression expression = and();
+
+        while (match(OR)) {
+            Token operator = previous();
+            Expression right = and();
+            expression = new Expression.Logical(expression, operator, right);
+        }
+
+        return expression;
+    }
+
+    private Expression and() {
+        Expression expression = equality();
+
+        while (match(AND)) {
+            Token operator = previous();
+            Expression right = equality();
+            expression = new Expression.Logical(expression, operator, right);
         }
 
         return expression;
