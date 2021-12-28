@@ -153,7 +153,7 @@ public class Parser {
         Statement elseStmt = null;
         if (match(ELSE)) elseStmt = statement();
 
-        return statement();
+        return new Statement.If(condition, thenStmt, elseStmt);
     }
 
     private Statement printStatement() {
