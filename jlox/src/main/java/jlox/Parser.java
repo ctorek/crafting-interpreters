@@ -44,7 +44,8 @@ public class Parser {
 
     private Statement declaration() {
         try {
-            if(match(VAR)) return varDeclaration();
+            if (match(FUN)) return function("function");
+            if (match(VAR)) return varDeclaration();
 
             return statement();
         } catch (ParseError err) {
@@ -85,6 +86,7 @@ public class Parser {
         if (match(FOR)) return forStatement();
         if (match(IF)) return ifStatement();
         if (match(PRINT)) return printStatement();
+        if (match(RETURN)) return returnStatement();
         if (match(WHILE)) return whileStatement();
         if (match(LEFT_BRACE)) return new Statement.Block(block());
 
@@ -163,11 +165,59 @@ public class Parser {
         return new Statement.Print(expression);
     }
 
+    private Statement returnStatement() {
+        Token keyword = previous();
+        Expression value = null;
+
+        // Return value is present if the return statement is not followed by a semicolon
+        if (!check(SEMICOLON)) {
+            value = expression();
+        }
+
+        // Semicolon is required after return statement
+        consume(SEMICOLON, "Expect ';' after return value.");
+
+        return new Statement.Return(keyword, value);
+    }
+
     private Statement expressionStatement() {
         Expression expression = expression();
         // Semicolon is required or error will be thrown
         consume(SEMICOLON, "Expect ';' after expression.");
         return new Statement.Expr(expression);
+    }
+
+    private Statement.Function function(String kind) {
+        // Name of function is required in function definition
+        Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
+
+        // Parentheses are required in function definition
+        consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+
+        List<Token> parameters = new ArrayList<>();
+
+        // Only run if the next token is a right parenthesis, meaning no parameters in definition
+        if (!check(RIGHT_PAREN)) {
+            // If the next token is not a right parenthesis, at least one parameter must be present
+            do {
+                // Max number of parameters is 255
+                if (parameters.size() >= 255) {
+                    error(peek(), "Max number of parameters is 255.");
+                }
+
+                // Name of parameter is required
+                parameters.add(consume(IDENTIFIER, "Expect parameter name."));
+            } while (match(COMMA));
+        }
+
+        // Parentheses are required in function definition
+        consume(RIGHT_PAREN, "Expect ')' after parameters.");
+
+        // Braces are required around function body
+        consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+        List<Statement> body = block();
+
+        return new Statement.Function(name, parameters, body);
     }
 
     private Expression expression() {
@@ -280,8 +330,46 @@ public class Parser {
             return new Expression.Unary(operator, expression);
         }
 
-        // Otherwise return a primary expression
-        return primary();
+        // Otherwise return a function call expression
+        return call();
+    }
+
+    private Expression call() {
+        // Object that function is being called on
+        Expression expression = primary();
+
+        while (true) {
+            if (match(LEFT_PAREN)) {
+                // When left parenthesis is found, parse arguments and create call expression
+                expression = finishCall(expression);
+            } else {
+                break;
+            }
+        }
+
+        return expression;
+    }
+
+    private Expression finishCall(Expression callee) {
+        List<Expression> arguments = new ArrayList<>();
+
+        // Check for arguments if the right parenthesis is not the next token
+        if (!check(RIGHT_PAREN)) {
+            // If the right parenthesis is not the next token, there must be at least one argument
+            do {
+                // Max number of arguments is 255, or 254 with implicit 'this'
+                if (arguments.size() >= 255) {
+                    error(peek(), "Max number of arguments is 255.");
+                }
+                // Parse an expression for the arguments
+                arguments.add(expression());
+            } while (match(COMMA));
+        }
+
+        // Right parenthesis required after arguments
+        Token paren = consume(RIGHT_PAREN, "Expect ')' after arguments.");
+
+        return new Expression.Call(callee, paren, arguments);
     }
 
     /**

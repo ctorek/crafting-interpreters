@@ -1,17 +1,44 @@
+/* Variables */
+print "Variables: ";
 var x = 1;
 var y = 2;
 
 print x;
 print y;
 
+/* Loops */
+print "For loop: ";
 for (var i = 0; i < 4; i = i + 1) {
-    print x;
+    print i;
 }
 
+print "While loop: ";
+var i = 0;
+while (i < 4) {
+    print i;
+    i = i + 1;
+}
+
+/* Logic */
+print "Boolean logic: ";
 print true or false;
 print true and true;
 print true and false;
 
-print nil;
-
 if (1 == 1) { print "1 equals 1"; }
+
+/* Functions */
+print "Functions: ";
+fun hello(name) {
+    print "Hello " + name + "!";
+}
+
+hello("Ell");
+
+fun add(a, b) {
+    return a + b;
+}
+
+print add(1, 2);
+
+print "Time: " + clock();

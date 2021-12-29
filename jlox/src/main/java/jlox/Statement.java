@@ -4,13 +4,32 @@ import java.util.List;
 
 abstract class Statement {
 	interface Visitor<R> {
+		R visitFunctionStatement(Function statement);
 		R visitIfStatement(If statement);
 		R visitBlockStatement(Block statement);
 		R visitExprStatement(Expr statement);
 		R visitPrintStatement(Print statement);
+		R visitReturnStatement(Return statement);
 		R visitVarStatement(Var statement);
 		R visitWhileStatement(While statement);
 	}
+	static class Function extends Statement {
+		final Token name;
+		final List<Token> params;
+		final List<Statement> body;
+
+		Function(Token name,List<Token> params,List<Statement> body) {
+			this.name = name;
+			this.params = params;
+			this.body = body;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitFunctionStatement(this);
+		}
+	}
+
 	static class If extends Statement {
 		final Expression condition;
 		final Statement thenStmt;
@@ -64,6 +83,21 @@ abstract class Statement {
 		@Override
 		<R> R accept(Visitor<R> visitor) {
 			return visitor.visitPrintStatement(this);
+		}
+	}
+
+	static class Return extends Statement {
+		final Token keyword;
+		final Expression value;
+
+		Return(Token keyword,Expression value) {
+			this.keyword = keyword;
+			this.value = value;
+		}
+
+		@Override
+		<R> R accept(Visitor<R> visitor) {
+			return visitor.visitReturnStatement(this);
 		}
 	}
 

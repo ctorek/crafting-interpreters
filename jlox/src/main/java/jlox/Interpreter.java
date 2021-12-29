@@ -1,10 +1,28 @@
 package jlox;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void> {
     // Defines and retrieves variables
-    private Environment environment = new Environment();
+    final Environment globals = new Environment();
+    private Environment environment = globals;
+
+    Interpreter() {
+        // Instantiate native global functions
+        globals.define("clock", new LoxCallable() {
+            @Override
+            public int arity() { return 0; }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return (double) System.currentTimeMillis() / 1000.0;
+            }
+
+            @Override
+            public String toString() { return "<native function>"; }
+        });
+    }
 
     void interpret(List<Statement> statements) {
         try {
@@ -65,12 +83,30 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
     }
 
     @Override
+    public Void visitFunctionStatement(Statement.Function statement) {
+        LoxFunction function = new LoxFunction(statement, environment);
+
+        // Make the function available to the environment it was defined in
+        environment.define(statement.name.lexeme, function);
+
+        return null;
+    }
+
+    @Override
     public Void visitPrintStatement(Statement.Print statement) {
         Object value = evaluate(statement.expression);
         System.out.println(stringify(value));
 
         // Null return is necessary because capital-V void
         return null;
+    }
+
+    @Override
+    public Void visitReturnStatement(Statement.Return statement) {
+        Object value = null;
+        if (statement.value != null) value = evaluate(statement.value);
+
+        throw new Return(value);
     }
 
     @Override
@@ -188,6 +224,30 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         return null;
     }
 
+    @Override
+    public Object visitCallExpression(Expression.Call expression) {
+        Object callee = evaluate(expression.callee);
+
+        List<Object> arguments = new ArrayList<>();
+        for (Expression argument: expression.arguments) {
+            arguments.add(evaluate(argument));
+        }
+
+        // Check that callee is a function first
+        if (!(callee instanceof LoxCallable)) {
+            throw new RuntimeError(expression.paren, "Can only call functions and classes.");
+        }
+
+        LoxCallable function = (LoxCallable) callee;
+
+        // Check that function is called with correct number of arguments
+        if (arguments.size() != function.arity()) {
+            throw new RuntimeError(expression.paren, "Expected " + function.arity() + " arguments but received " + arguments.size() + ".");
+        }
+
+        return function.call(this, arguments);
+    }
+
     /**
      * Converts an object to a string, with special cases for handling Lox's nil and numbers with no decimals.
      * @param object the object being converted
@@ -278,7 +338,7 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         statement.accept(this);
     }
 
-    private void executeBlock(List<Statement> statements, Environment environment) {
+    void executeBlock(List<Statement> statements, Environment environment) {
         Environment previous = this.environment;
 
         try {

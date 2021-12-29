@@ -22,6 +22,7 @@ public class GenerateAst {
                 // Types of expressions and their fields
                 "Assign:Token name,Expression value",
                 "Binary:Expression left,Token operator,Expression right",
+                "Call:Expression callee,Token paren,List<Expression> arguments",
                 "Grouping:Expression expression",
                 "Literal:Object value",
                 "Logical:Expression left,Token operator,Expression right",
@@ -32,10 +33,12 @@ public class GenerateAst {
 
         writeAst(outputDir, "Statement", Arrays.asList(
                 // Types of statements and their fields
+                "Function:Token name,List<Token> params,List<Statement> body",
                 "If:Expression condition,Statement thenStmt,Statement elseStmt",
                 "Block:List<Statement> statements",
                 "Expr:Expression expression",
                 "Print:Expression expression",
+                "Return:Token keyword,Expression value",
                 "Var:Token name,Expression init",
                 "While:Expression condition,Statement body"
         ));

@@ -1,5 +1,7 @@
 package jlox;
 
+import java.util.List;
+
 /**
  * Class for printing expressions in Lisp notation.
  */
@@ -11,6 +13,11 @@ public class AstViewer implements Expression.Visitor<String> {
      */
     String print(Expression expression) {
         return expression.accept(this);
+    }
+
+    @Override
+    public String visitCallExpression(Expression.Call expression) {
+        return parenthesize2("call", expression.callee, expression.arguments);
     }
 
     @Override
@@ -70,5 +77,30 @@ public class AstViewer implements Expression.Visitor<String> {
 
         builder.append(")");
         return builder.toString();
+    }
+
+    // copied and pasted from the github code
+    private String parenthesize2(String name, Object... expressions) {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append("(").append(name);
+        transform(builder, expressions);
+        builder.append(")");
+        return builder.toString();
+    }
+
+    private void transform(StringBuilder builder, Object... parts) {
+        for (Object part : parts) {
+            builder.append(" ");
+            if (part instanceof Expression) {
+                builder.append(((Expression) part).accept(this));
+            } else if (part instanceof Token) {
+                builder.append(((Token) part).lexeme);
+            } else if (part instanceof List) {
+                transform(builder, ((List) part).toArray());
+            } else {
+                builder.append(part);
+            }
+        }
     }
 }
