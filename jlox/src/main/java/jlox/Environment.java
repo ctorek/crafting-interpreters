@@ -28,6 +28,40 @@ public class Environment {
     }
 
     /**
+     * Retrieve an enclosing environment.
+     * @param distance the distance from the current environment. Current environment is 0, enclosing is 1, etc
+     * @return the environment at the specified distance
+     */
+    Environment ancestor(int distance) {
+        Environment environment = this;
+        for (int i = 0; i < distance; i++) {
+            environment = environment.enclosing;
+        }
+
+        return environment;
+    }
+
+    /**
+     * Retrieve a variable from a specific enclosing environment rather than dynamically searching.
+     * @param distance the distance from the current environment. Current environment is 0, enclosing is 1, etc
+     * @param name the name of the variable being searched for
+     * @return the value of the variable
+     */
+    Object getAt(int distance, String name) {
+        return ancestor(distance).values.get(name);
+    }
+
+    /**
+     * Assign a variable in a specific enclosing environment rather than the current environment.
+     * @param distance the distance from the current environment. Current environment is 0, enclosing is 1, etc
+     * @param name the name of the variable being assigned to
+     * @param value the value of the variable
+     */
+    void assignAt(int distance, Token name, Object value) {
+        ancestor(distance).values.put(name.lexeme, value);
+    }
+
+    /**
      * Assign to a variable that already exists in the environment.
      * Throws a {@link RuntimeError} if a variable by that name does not exist.
      * @param name the tokenized name of the variable that is being assigned to
