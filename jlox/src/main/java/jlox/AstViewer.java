@@ -16,6 +16,11 @@ public class AstViewer implements Expression.Visitor<String> {
     }
 
     @Override
+    public String visitThisExpression(Expression.This expression) {
+        return parenthesize("this");
+    }
+
+    @Override
     public String visitSetExpression(Expression.Set expression) {
         return parenthesize("set", expression.object, expression.value);
     }

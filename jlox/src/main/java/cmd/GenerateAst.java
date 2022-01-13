@@ -28,6 +28,7 @@ public class GenerateAst {
                 "Literal:Object value",
                 "Logical:Expression left,Token operator,Expression right",
                 "Set:Expression object,Token name,Expression value",
+                "This:Token keyword",
                 "Unary:Token operator,Expression expression",
                 "Variable:Token name"
         ));

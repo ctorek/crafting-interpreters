@@ -12,12 +12,19 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
     // Tracks whether currently inside a function or top level
     private FunctionType currentFunction = FunctionType.NONE;
 
+    // Tracks whether currently inside a class or top level
+    private ClassType currentClass = ClassType.NONE;
+
     Resolver(Interpreter interpreter) {
         this.interpreter = interpreter;
     }
 
     private enum FunctionType {
-        NONE, FUNCTION, METHOD
+        NONE, FUNCTION, INITIALIZER, METHOD
+    }
+
+    private enum ClassType {
+        NONE, CLASS
     }
 
     @Override
@@ -31,13 +38,31 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
 
     @Override
     public Void visitClassStatement(Statement.Class statement) {
+        // Tracks whether in a class or top-level for use of "this" keyword
+        ClassType enclosingClass = currentClass;
+        currentClass = ClassType.CLASS;
+
         declare(statement.name);
         define(statement.name);
 
+        // "this" keyword added to every class scope
+        beginScope();
+        scopes.peek().put("this", true);
+
         for (Statement.Function method: statement.methods) {
+            // Functions in classes other than initializers are methods
             FunctionType declaration = FunctionType.METHOD;
+
+            // Function defined in class will be initializer if named "init"
+            if (method.name.lexeme.equals("init")) {
+                declaration = FunctionType.INITIALIZER;
+            }
+
             resolveFunction(method, declaration);
         }
+
+        endScope();
+        currentClass = enclosingClass;
 
         return null;
     }
@@ -79,7 +104,14 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
             Lox.error(statement.keyword, "Cannot return from top level.");
         }
 
-        if (statement.value != null) resolve(statement.value);
+        if (statement.value != null) {
+            // Returning with value is not allowed in init, returning without value is allowed
+            if (currentFunction == FunctionType.INITIALIZER) {
+                Lox.error(statement.keyword, "Can't return a value from inside an initializer.");
+            }
+
+            resolve(statement.value);
+        }
         return null;
     }
 
@@ -165,6 +197,17 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
     public Void visitSetExpression(Expression.Set expression) {
         resolve(expression.value);
         resolve(expression.object);
+        return null;
+    }
+
+    @Override
+    public Void visitThisExpression(Expression.This expression) {
+        // Class type is none when not inside a class declaration
+        if (currentClass == ClassType.NONE) {
+            Lox.error(expression.keyword, "Can't use 'this' outside of a class.");
+        }
+
+        resolveLocal(expression, expression.keyword);
         return null;
     }
 

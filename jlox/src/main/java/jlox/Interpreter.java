@@ -62,7 +62,7 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         // Parsing class methods
         Map<String, LoxFunction> methods = new HashMap<>();
         for (Statement.Function method: statement.methods) {
-            LoxFunction function = new LoxFunction(method, environment);
+            LoxFunction function = new LoxFunction(method, environment, method.name.lexeme.equals("init"));
             methods.put(method.name.lexeme, function);
         }
 
@@ -104,7 +104,7 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
 
     @Override
     public Void visitFunctionStatement(Statement.Function statement) {
-        LoxFunction function = new LoxFunction(statement, environment);
+        LoxFunction function = new LoxFunction(statement, environment, false);
 
         // Make the function available to the environment it was defined in
         environment.define(statement.name.lexeme, function);
@@ -180,6 +180,11 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         ((LoxInstance) object).set(expression.name, value);
 
         return value;
+    }
+
+    @Override
+    public Object visitThisExpression(Expression.This expression) {
+        return lookUpVariable(expression.keyword, expression);
     }
 
     @Override

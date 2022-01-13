@@ -414,6 +414,9 @@ public class Parser {
             return new Expression.Literal(previous().literal);
         }
 
+        // "this" keyword is used in classes
+        if (match(THIS)) return new Expression.This(previous());
+
         // Match identifiers to values of variables
         if (match(IDENTIFIER)) {
             return new Expression.Variable(previous());
