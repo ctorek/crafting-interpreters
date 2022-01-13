@@ -17,7 +17,7 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
     }
 
     private enum FunctionType {
-        NONE, FUNCTION
+        NONE, FUNCTION, METHOD
     }
 
     @Override
@@ -25,6 +25,19 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
         beginScope();
         resolve(statement.statements);
         endScope();
+
+        return null;
+    }
+
+    @Override
+    public Void visitClassStatement(Statement.Class statement) {
+        declare(statement.name);
+        define(statement.name);
+
+        for (Statement.Function method: statement.methods) {
+            FunctionType declaration = FunctionType.METHOD;
+            resolveFunction(method, declaration);
+        }
 
         return null;
     }
@@ -125,6 +138,12 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
     }
 
     @Override
+    public Void visitGetExpression(Expression.Get expression) {
+        resolve(expression.object);
+        return null;
+    }
+
+    @Override
     public Void visitGroupingExpression(Expression.Grouping expression) {
         resolve(expression.expression);
         return null;
@@ -139,6 +158,13 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
     public Void visitLogicalExpression(Expression.Logical expression) {
         resolve(expression.left);
         resolve(expression.right);
+        return null;
+    }
+
+    @Override
+    public Void visitSetExpression(Expression.Set expression) {
+        resolve(expression.value);
+        resolve(expression.object);
         return null;
     }
 

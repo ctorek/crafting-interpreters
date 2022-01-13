@@ -42,3 +42,12 @@ fun add(a, b) {
 print add(1, 2);
 
 print "Time: " + clock();
+
+/* Classes */
+class Bacon {
+    eat() {
+        print "crunchy";
+    }
+}
+
+Bacon().eat();

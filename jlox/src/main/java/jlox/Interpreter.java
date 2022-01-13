@@ -56,6 +56,22 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
     }
 
     @Override
+    public Void visitClassStatement(Statement.Class statement) {
+        environment.define(statement.name.lexeme, null);
+
+        // Parsing class methods
+        Map<String, LoxFunction> methods = new HashMap<>();
+        for (Statement.Function method: statement.methods) {
+            LoxFunction function = new LoxFunction(method, environment);
+            methods.put(method.name.lexeme, function);
+        }
+
+        LoxClass loxClass = new LoxClass(statement.name.lexeme, methods);
+        environment.assign(statement.name, loxClass);
+        return null;
+    }
+
+    @Override
     public Void visitVarStatement(Statement.Var statement) {
         // Check for value of variable
         Object value = null;
@@ -149,6 +165,21 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         }
 
         return evaluate(expression.right);
+    }
+
+    @Override
+    public Object visitSetExpression(Expression.Set expression) {
+        Object object = evaluate(expression.object);
+
+        // Set cannot be called on properties of uninstantiated classes
+        if (!(object instanceof LoxInstance)) {
+            throw new RuntimeError(expression.name, "Static set is not allowed.");
+        }
+
+        Object value = evaluate(expression.value);
+        ((LoxInstance) object).set(expression.name, value);
+
+        return value;
     }
 
     @Override
@@ -257,6 +288,19 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         }
 
         return function.call(this, arguments);
+    }
+
+    @Override
+    public Object visitGetExpression(Expression.Get expression) {
+        Object object = evaluate(expression.object);
+
+        // Only LoxInstance if class is instantiated
+        if (object instanceof LoxInstance) {
+            return ((LoxInstance) object).get(expression.name);
+        }
+
+        // Accessing fields without an instance of the class is not allowed
+        throw new RuntimeError(expression.name, "Static access is not allowed.");
     }
 
     private Object lookUpVariable(Token name, Expression expression) {

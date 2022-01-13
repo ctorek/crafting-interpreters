@@ -1,5 +1,6 @@
 package jlox;
 
+import javax.swing.plaf.nimbus.State;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -44,6 +45,7 @@ public class Parser {
 
     private Statement declaration() {
         try {
+            if (match(CLASS)) return classDeclaration();
             if (match(FUN)) return function("function");
             if (match(VAR)) return varDeclaration();
 
@@ -52,6 +54,23 @@ public class Parser {
             synchronize();
             return null;
         }
+    }
+
+    private Statement classDeclaration() {
+        // Class names are required
+        Token name = consume(IDENTIFIER, "Expect class name.");
+
+        // Braces are required around class body
+        consume(LEFT_BRACE, "Expect '{' before class body.");
+
+        List<Statement.Function> methods = new ArrayList<>();
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            methods.add(function("method"));
+        }
+
+        // Braces are required around class body
+        consume(RIGHT_BRACE, "Expect '}' after class body.");
+        return new Statement.Class(name, methods);
     }
 
     private Statement varDeclaration() {
@@ -234,6 +253,10 @@ public class Parser {
             if (expression instanceof Expression.Variable) {
                 Token name = ((Expression.Variable) expression).name;
                 return new Expression.Assign(name, value);
+            } else if (expression instanceof Expression.Get) {
+                // Setters are only called on properties
+                Expression.Get get = (Expression.Get) expression;
+                return new Expression.Set(get.object, get.name, value);
             }
 
             error(equals, "Invalid assignment target.");
@@ -342,6 +365,10 @@ public class Parser {
             if (match(LEFT_PAREN)) {
                 // When left parenthesis is found, parse arguments and create call expression
                 expression = finishCall(expression);
+            } else if (match(DOT)) {
+                // Name is required when accessing property of class
+                Token name = consume(IDENTIFIER, "Expect property name after '.'.");
+                expression = new Expression.Get(expression, name);
             } else {
                 break;
             }
