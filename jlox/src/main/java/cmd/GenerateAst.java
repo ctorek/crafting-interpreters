@@ -28,6 +28,7 @@ public class GenerateAst {
                 "Literal:Object value",
                 "Logical:Expression left,Token operator,Expression right",
                 "Set:Expression object,Token name,Expression value",
+                "Super:Token keyword,Token method",
                 "This:Token keyword",
                 "Unary:Token operator,Expression expression",
                 "Variable:Token name"
@@ -39,7 +40,7 @@ public class GenerateAst {
                 "Function:Token name,List<Token> params,List<Statement> body",
                 "If:Expression condition,Statement thenStmt,Statement elseStmt",
                 "Block:List<Statement> statements",
-                "Class:Token name,List<Statement.Function> methods",
+                "Class:Token name,Expression.Variable superclass,List<Statement.Function> methods",
                 "Expr:Expression expression",
                 "Print:Expression expression",
                 "Return:Token keyword,Expression value",

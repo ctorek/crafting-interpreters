@@ -60,6 +60,13 @@ public class Parser {
         // Class names are required
         Token name = consume(IDENTIFIER, "Expect class name.");
 
+        // Superclass is optional and specified with a less than
+        Expression.Variable superclass = null;
+        if (match(LESS)) {
+            consume(IDENTIFIER, "Expect superclass name.");
+            superclass = new Expression.Variable(previous());
+        }
+
         // Braces are required around class body
         consume(LEFT_BRACE, "Expect '{' before class body.");
 
@@ -70,7 +77,7 @@ public class Parser {
 
         // Braces are required around class body
         consume(RIGHT_BRACE, "Expect '}' after class body.");
-        return new Statement.Class(name, methods);
+        return new Statement.Class(name, superclass, methods);
     }
 
     private Statement varDeclaration() {
@@ -412,6 +419,14 @@ public class Parser {
         // Number or string literals are literal expressions of their value
         if (match(NUMBER, STRING)) {
             return new Expression.Literal(previous().literal);
+        }
+
+        if (match(SUPER)) {
+            Token keyword = previous();
+            consume(DOT, "Expect '.' after super.");
+            Token method = consume(IDENTIFIER, "Expect superclass method name.");
+
+            return new Expression.Super(keyword, method);
         }
 
         // "this" keyword is used in classes

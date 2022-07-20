@@ -72,6 +72,11 @@ public class AstViewer implements Expression.Visitor<String> {
         return parenthesize(expression.operator.lexeme, expression.expression);
     }
 
+    @Override
+    public String visitSuperExpression(Expression.Super expression) {
+        return parenthesize(expression.method.lexeme, expression);
+    }
+
     /**
      * Wraps an expression in parentheses using Lisp notation.
      * @param name the name of the expression or operation performed on it

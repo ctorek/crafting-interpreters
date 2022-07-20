@@ -57,7 +57,22 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
 
     @Override
     public Void visitClassStatement(Statement.Class statement) {
+        Object superclass = null;
+
+        // Check that superclass is a class
+        if (statement.superclass != null) {
+            superclass = evaluate(statement.superclass);
+            if (!(superclass instanceof LoxClass)) {
+                throw new RuntimeError(statement.superclass.name, "Superclass must be a class.");
+            }
+        }
+
         environment.define(statement.name.lexeme, null);
+
+        if (statement.superclass != null) {
+            environment = new Environment(environment);
+            environment.define("super", superclass);
+        }
 
         // Parsing class methods
         Map<String, LoxFunction> methods = new HashMap<>();
@@ -66,7 +81,12 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
             methods.put(method.name.lexeme, function);
         }
 
-        LoxClass loxClass = new LoxClass(statement.name.lexeme, methods);
+        LoxClass loxClass = new LoxClass(statement.name.lexeme, (LoxClass) superclass, methods);
+
+        if (superclass != null) {
+            environment = environment.enclosing;
+        }
+
         environment.assign(statement.name, loxClass);
         return null;
     }
@@ -180,6 +200,22 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         ((LoxInstance) object).set(expression.name, value);
 
         return value;
+    }
+
+    @Override
+    public Object visitSuperExpression(Expression.Super expression) {
+        int distance = locals.get(expression);
+
+        LoxClass superclass = (LoxClass) environment.getAt(distance, "super");
+        LoxInstance object = (LoxInstance) environment.getAt(distance - 1, "this");
+
+        LoxFunction method = superclass.findMethod(expression.method.lexeme);
+
+        if (method == null) {
+            throw new RuntimeError(expression.method, "Undefined property '" + expression.method.lexeme + "'.");
+        }
+
+        return method.bind(object);
     }
 
     @Override

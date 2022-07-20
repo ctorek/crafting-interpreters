@@ -24,7 +24,7 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
     }
 
     private enum ClassType {
-        NONE, CLASS
+        NONE, CLASS, SUBCLASS
     }
 
     @Override
@@ -45,6 +45,19 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
         declare(statement.name);
         define(statement.name);
 
+        // Check if superclass is same as class
+        if (statement.superclass != null && statement.name.lexeme.equals(statement.superclass.name.lexeme)) {
+            Lox.error(statement.superclass.name, "A class can't inherit from itself.");
+        }
+
+        if (statement.superclass != null) {
+            currentClass = ClassType.SUBCLASS;
+            resolve(statement.superclass);
+
+            beginScope();
+            scopes.peek().put("super", true);
+        }
+
         // "this" keyword added to every class scope
         beginScope();
         scopes.peek().put("this", true);
@@ -62,6 +75,9 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
         }
 
         endScope();
+
+        if (statement.superclass != null) endScope();
+
         currentClass = enclosingClass;
 
         return null;
@@ -197,6 +213,18 @@ public class Resolver implements Expression.Visitor<Void>, Statement.Visitor<Voi
     public Void visitSetExpression(Expression.Set expression) {
         resolve(expression.value);
         resolve(expression.object);
+        return null;
+    }
+
+    @Override
+    public Void visitSuperExpression(Expression.Super expression) {
+        if (currentClass == ClassType.NONE) {
+            Lox.error(expression.keyword, "Can't use 'super' keyword outside of a class.");
+        } else if (currentClass == ClassType.CLASS){
+            Lox.error(expression.keyword, "Can't use 'super' keyword in a class without a superclass.");
+        }
+
+        resolveLocal(expression, expression.keyword);
         return null;
     }
 
